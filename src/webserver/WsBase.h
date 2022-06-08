@@ -9,6 +9,7 @@
 
 #include <backend/BackendInterface.h>
 #include <etl/ETLSource.h>
+#include <etl/ReportingETL.h>
 #include <rpc/Counters.h>
 #include <rpc/RPC.h>
 #include <subscriptions/Message.h>
@@ -320,9 +321,24 @@ public:
 
             return sendError(RPC::Error::rpcINTERNAL);
         }
-
+        auto result = response["result"].as_object();
+        result["warning"] = boost::json::array{};
         std::string responseStr = boost::json::serialize(response);
-        dosGuard_.add(*ip, responseStr.size());
+        auto warningFlag = false;
+        if (!dosGuard_.add(*ip, responseStr.size()))
+        {
+            result["warning"].as_array().emplace_back("Too many requests");
+            warningFlag = true;
+        }
+        auto lastPublishAgeMinutes = std::chrono::duration_cast<std::chrono::minutes>(
+            std::chrono::system_clock::now() - etl_->getLastPublish()).count();
+        if (lastPublishAgeMinutes >= 1)
+        {
+            result["warning"].as_array().emplace_back("This server may be out of date");
+            warningFlag = true;
+        }
+        // reserialize if a warning was appended
+        if (warningFlag) responseStr = boost::json::serialize(response);
         send(std::move(responseStr));
     }
 

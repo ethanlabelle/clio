@@ -130,19 +130,12 @@ private:
     /// server_info
     std::chrono::time_point<std::chrono::system_clock> lastPublish_;
 
-    mutable std::mutex publishTimeMtx_;
-
-    std::chrono::time_point<std::chrono::system_clock>
-    getLastPublish() const
-    {
-        std::unique_lock<std::mutex> lck(publishTimeMtx_);
-        return lastPublish_;
-    }
+    mutable std::shared_mutex publishTimeMtx_;
 
     void
     setLastPublish()
     {
-        std::unique_lock<std::mutex> lck(publishTimeMtx_);
+        std::unique_lock<std::shared_mutex> lck(publishTimeMtx_);
         lastPublish_ = std::chrono::system_clock::now();
     }
 
@@ -328,6 +321,13 @@ public:
                     .count());
 
         return result;
+    }
+    
+    std::chrono::time_point<std::chrono::system_clock>
+    getLastPublish() const
+    {
+        std::shared_lock<std::shared_mutex> lck(publishTimeMtx_);
+        return lastPublish_;
     }
 };
 
