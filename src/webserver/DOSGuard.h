@@ -9,11 +9,47 @@
 class DOSGuard
 {
     boost::asio::io_context& ctx_;
-    std::mutex mtx_;  // protects ipFetchCount_
+    std::recursive_mutex mtx_;  // protects ipFetchCount_, ipRequestCount_
     std::unordered_map<std::string, std::uint32_t> ipFetchCount_;
+    std::unordered_map<std::string, std::uint32_t> ipRequestCount_;
     std::unordered_set<std::string> const whitelist_;
     std::uint32_t const maxFetches_;
     std::uint32_t const sweepInterval_;
+    std::uint32_t const maxConcurrentRequests_;
+
+    struct ticket
+    {
+        std::uint32_t& count_;
+        std::recursive_mutex& mtx_;
+        bool isValid_;
+
+        ticket(std::uint32_t& ct, std::recursive_mutex& m, bool isValid)
+            : count_(ct), mtx_(m), isValid_(isValid)
+        {
+            if (isValid_)
+            {
+                std::unique_lock lk(mtx_);
+                count_++;
+            }
+        }
+
+        ~ticket()
+        {
+            if (isValid_)
+            {
+                std::unique_lock lk(mtx_);
+                count_--;
+            }
+        }
+
+        bool
+        isValid()
+        {
+            return isValid_;
+        }
+
+        ticket(ticket const& other) = delete;
+    };
 
     std::optional<boost::json::object>
     getConfig(boost::json::object const& config) const
@@ -68,12 +104,35 @@ class DOSGuard
         }
     }
 
+    std::uint32_t
+    getFetches(std::string const& ip)
+    {
+        std::unique_lock lk(mtx_);
+        auto it = ipFetchCount_.find(ip);
+        if (it == ipFetchCount_.end())
+            return 0;
+        else
+            return it->second;
+    }
+
+    std::uint32_t
+    getRequests(std::string const& ip)
+    {
+        std::unique_lock lk(mtx_);
+        auto it = ipRequestCount_.find(ip);
+        if (it == ipRequestCount_.end())
+            return 0;
+        else
+            return it->second;
+    }
+
 public:
     DOSGuard(boost::json::object const& config, boost::asio::io_context& ctx)
         : ctx_(ctx)
         , whitelist_(getWhitelist(config))
         , maxFetches_(get(config, "max_fetches", 100))
         , sweepInterval_(get(config, "sweep_interval", 1))
+        , maxConcurrentRequests_(get(config, "max_concurrent_requests", 4))
     {
         createTimer();
     }
@@ -103,15 +162,22 @@ public:
     {
         if (whitelist_.contains(ip))
             return true;
-
         std::unique_lock lck(mtx_);
-        auto it = ipFetchCount_.find(ip);
-        if (it == ipFetchCount_.end())
-            return true;
-
-        return it->second < maxFetches_;
+        return getFetches(ip) < maxFetches_ &&
+            getRequests(ip) < maxConcurrentRequests_;
     }
 
+    ticket
+    checkout(std::string const& ip)
+    {
+        std::unique_lock lk(mtx_);
+        if (isOk(ip))
+            return ticket(ipRequestCount_[ip], mtx_, true);
+        else
+            return ticket(ipRequestCount_[ip], mtx_, false);
+    }
+    
+    // add numObjects bytes to the fetch count for ip
     bool
     add(std::string const& ip, uint32_t numObjects)
     {

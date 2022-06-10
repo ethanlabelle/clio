@@ -261,6 +261,10 @@ public:
             send(boost::json::serialize(e));
         };
 
+        auto ticket = dosGuard_.checkout(*ip);
+        if (!ticket.isValid())
+            return sendError(RPC::Error::rpcSLOW_DOWN, id);
+
         boost::json::value raw = [](std::string const&& msg) {
             try
             {

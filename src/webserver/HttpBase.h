@@ -312,21 +312,19 @@ handle_request(
         return res;
     };
 
-    if (req.method() == http::verb::get && req.body() == "")
-    {
-        send(httpResponse(http::status::ok, "text/html", defaultResponse));
-        return;
-    }
-
-    if (req.method() != http::verb::post)
-        return send(httpResponse(
-            http::status::bad_request, "text/html", "Expected a POST request"));
-
-    if (!dosGuard.isOk(ip))
+    auto ticket = dosGuard.checkout(ip);
+    if (!ticket.isValid())
         return send(httpResponse(
             http::status::ok,
             "application/json",
             boost::json::serialize(RPC::make_error(RPC::Error::rpcSLOW_DOWN))));
+
+    if (req.method() == http::verb::get && req.body() == "")
+        return send(httpResponse(http::status::ok, "text/html", defaultResponse));
+
+    if (req.method() != http::verb::post)
+        return send(httpResponse(
+            http::status::bad_request, "text/html", "Expected a POST request"));
 
     try
     {
@@ -349,13 +347,6 @@ handle_request(
                 boost::json::serialize(
                     RPC::make_error(RPC::Error::rpcBAD_SYNTAX))));
         }
-
-        if (!dosGuard.isOk(ip))
-            return send(httpResponse(
-                http::status::ok,
-                "application/json",
-                boost::json::serialize(
-                    RPC::make_error(RPC::Error::rpcSLOW_DOWN))));
 
         auto range = backend->fetchLedgerRange();
         if (!range)
