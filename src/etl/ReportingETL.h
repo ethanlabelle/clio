@@ -322,7 +322,7 @@ public:
 
         return result;
     }
-    
+
     std::chrono::time_point<std::chrono::system_clock>
     getLastPublish() const
     {

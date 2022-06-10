@@ -330,15 +330,19 @@ public:
             result["warning"].as_array().emplace_back("Too many requests");
             warningFlag = true;
         }
-        auto lastPublishAgeMinutes = std::chrono::duration_cast<std::chrono::minutes>(
-            std::chrono::system_clock::now() - etl_->getLastPublish()).count();
+        auto lastPublishAgeMinutes =
+            std::chrono::duration_cast<std::chrono::minutes>(
+                std::chrono::system_clock::now() - etl_->getLastPublish())
+                .count();
         if (lastPublishAgeMinutes >= 1)
         {
-            result["warning"].as_array().emplace_back("This server may be out of date");
+            result["warning"].as_array().emplace_back(
+                "This server may be out of date");
             warningFlag = true;
         }
         // reserialize if a warning was appended
-        if (warningFlag) responseStr = boost::json::serialize(response);
+        if (warningFlag)
+            responseStr = boost::json::serialize(response);
         send(std::move(responseStr));
     }
 
