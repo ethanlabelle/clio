@@ -406,27 +406,24 @@ handle_request(
         }
 
         auto warningFlag = false;
-        result["warning"] = boost::json::array{};
+        boost::json::array warnings;
         if (!dosGuard.add(ip, responseStr.size()))
         {
-            result["warning"].as_array().emplace_back("Too many requests");
+            warnings.emplace_back("Too many requests");
             warningFlag = true;
         }
-        auto lastPublishAgeMinutes =
-            std::chrono::duration_cast<std::chrono::minutes>(
-                std::chrono::system_clock::now() -
-                context->etl->getLastPublish())
-                .count();
-        if (lastPublishAgeMinutes >= 1)
+        auto lastPublishAge = context->etl->lastPublishAgeSeconds();
+        if (lastPublishAge >= 60)
         {
-            result["warning"].as_array().emplace_back(
-                "This server may be out of date");
+            warnings.emplace_back("This server may be out of date");
             warningFlag = true;
         }
         // reserialize only if a warning was appended.
         if (warningFlag)
+        {
+            result["warning"] = warnings;
             responseStr = boost::json::serialize(response);
-
+        }
         return send(
             httpResponse(http::status::ok, "application/json", responseStr));
     }

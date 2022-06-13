@@ -321,28 +321,29 @@ public:
 
             return sendError(RPC::Error::rpcINTERNAL);
         }
+
         auto result = response["result"].as_object();
-        result["warning"] = boost::json::array{};
         std::string responseStr = boost::json::serialize(response);
+        boost::json::array warnings;
         auto warningFlag = false;
+
         if (!dosGuard_.add(*ip, responseStr.size()))
         {
-            result["warning"].as_array().emplace_back("Too many requests");
+            warnings.emplace_back("Too many requests");
             warningFlag = true;
         }
-        auto lastPublishAgeMinutes =
-            std::chrono::duration_cast<std::chrono::minutes>(
-                std::chrono::system_clock::now() - etl_->getLastPublish())
-                .count();
-        if (lastPublishAgeMinutes >= 1)
+        auto lastPublishAge = etl_->lastPublishAgeSeconds();
+        if (lastPublishAge >= 60)
         {
-            result["warning"].as_array().emplace_back(
-                "This server may be out of date");
+            warnings.emplace_back("This server may be out of date");
             warningFlag = true;
         }
         // reserialize if a warning was appended
         if (warningFlag)
+        {
+            result["warning"] = warnings;
             responseStr = boost::json::serialize(response);
+        }
         send(std::move(responseStr));
     }
 
