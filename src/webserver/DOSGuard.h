@@ -176,7 +176,7 @@ public:
         else
             return ticket(ipRequestCount_[ip], mtx_, false);
     }
-    
+
     // add numObjects bytes to the fetch count for ip
     bool
     add(std::string const& ip, uint32_t numObjects)

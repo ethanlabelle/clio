@@ -320,7 +320,8 @@ handle_request(
             boost::json::serialize(RPC::make_error(RPC::Error::rpcSLOW_DOWN))));
 
     if (req.method() == http::verb::get && req.body() == "")
-        return send(httpResponse(http::status::ok, "text/html", defaultResponse));
+        return send(
+            httpResponse(http::status::ok, "text/html", defaultResponse));
 
     if (req.method() != http::verb::post)
         return send(httpResponse(
