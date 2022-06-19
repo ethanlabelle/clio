@@ -311,7 +311,9 @@ handle_request(
         res.prepare_payload();
         return res;
     };
-
+    
+    // The DOS guard allocates tickets to concurrent requests.
+    // The resource is automatically checked in when ticket goes out of scope. 
     auto ticket = dosGuard.checkout(ip);
     if (!ticket.isValid())
         return send(httpResponse(

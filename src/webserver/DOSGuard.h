@@ -10,6 +10,8 @@ class DOSGuard
 {
     boost::asio::io_context& ctx_;
     std::recursive_mutex mtx_;  // protects ipFetchCount_, ipRequestCount_
+                                // recursive mutex allows reentrant mutex acquisitions
+                                // this makes isOk(ip) and checkout(ip)atomic
     std::unordered_map<std::string, std::uint32_t> ipFetchCount_;
     std::unordered_map<std::string, std::uint32_t> ipRequestCount_;
     std::unordered_set<std::string> const whitelist_;
@@ -17,13 +19,13 @@ class DOSGuard
     std::uint32_t const sweepInterval_;
     std::uint32_t const maxConcurrentRequests_;
 
-    struct ticket
+    struct RPCScope 
     {
         std::uint32_t& count_;
         std::recursive_mutex& mtx_;
         bool isValid_;
 
-        ticket(std::uint32_t& ct, std::recursive_mutex& m, bool isValid)
+        RPCScope(std::uint32_t& ct, std::recursive_mutex& m, bool isValid)
             : count_(ct), mtx_(m), isValid_(isValid)
         {
             if (isValid_)
@@ -33,7 +35,7 @@ class DOSGuard
             }
         }
 
-        ~ticket()
+        ~RPCScope()
         {
             if (isValid_)
             {
@@ -47,8 +49,6 @@ class DOSGuard
         {
             return isValid_;
         }
-
-        ticket(ticket const& other) = delete;
     };
 
     std::optional<boost::json::object>
@@ -167,14 +167,14 @@ public:
             getRequests(ip) < maxConcurrentRequests_;
     }
 
-    ticket
+    RPCScope
     checkout(std::string const& ip)
     {
         std::unique_lock lk(mtx_);
         if (isOk(ip))
-            return ticket(ipRequestCount_[ip], mtx_, true);
+            return RPCScope(ipRequestCount_[ip], mtx_, true);
         else
-            return ticket(ipRequestCount_[ip], mtx_, false);
+            return RPCScope(ipRequestCount_[ip], mtx_, false);
     }
 
     // add numObjects bytes to the fetch count for ip

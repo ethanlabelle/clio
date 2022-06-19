@@ -260,7 +260,9 @@ public:
 
             send(boost::json::serialize(e));
         };
-
+        
+        // The DOS guard allocates tickets to concurrent requests.
+        // The resource is automatically checked in when ticket goes out of scope.
         auto ticket = dosGuard_.checkout(*ip);
         if (!ticket.isValid())
             return sendError(RPC::Error::rpcSLOW_DOWN, id);
