@@ -48,6 +48,7 @@ target_sources(clio PRIVATE
   src/backend/Pg.cpp
   src/backend/PostgresBackend.cpp
   src/backend/SimpleCache.cpp
+  src/backend/JsonCache.cpp
   ## ETL
   src/etl/ETLSource.cpp
   src/etl/ReportingETL.cpp
