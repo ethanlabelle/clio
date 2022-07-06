@@ -9,6 +9,8 @@
 #include <shared_mutex>
 #include <utility>
 #include <vector>
+#include <boost/json.hpp>
+
 namespace Backend {
 class SimpleCache
 {
@@ -23,6 +25,9 @@ class SimpleCache
     uint32_t latestSeq_ = 0;
     std::atomic_bool full_ = false;
     std::atomic_bool disabled_ = false;
+
+    bool jsonCaching_ = false;
+
     // temporary set to prevent background thread from writing already deleted
     // data. not used when cache is full
     std::unordered_set<ripple::uint256, ripple::hardened_hash<>> deletes_;
@@ -62,6 +67,9 @@ public:
 
     size_t
     size() const;
+    
+    void
+    setJsonCaching(bool config);
 };
 
 }  // namespace Backend

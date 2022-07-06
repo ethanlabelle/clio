@@ -81,9 +81,9 @@ SimpleCache::getPredecessor(ripple::uint256 const& key, uint32_t seq) const
 std::optional<Blob>
 SimpleCache::get(ripple::uint256 const& key, uint32_t seq) const
 {
+    std::shared_lock lck{mtx_};
     if (seq > latestSeq_)
         return {};
-    std::shared_lock lck{mtx_};
     auto e = map_.find(key);
     if (e == map_.end())
         return {};
@@ -119,5 +119,12 @@ SimpleCache::size() const
 {
     std::shared_lock lck{mtx_};
     return map_.size();
+}
+
+void
+SimpleCache::setJsonCaching(bool config)
+{
+    std::unique_lock lck{mtx_};
+    jsonCaching_ = config;
 }
 }  // namespace Backend
