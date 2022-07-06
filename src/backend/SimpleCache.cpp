@@ -1,4 +1,7 @@
 #include <backend/SimpleCache.h>
+#include <ripple/protocol/STLedgerEntry.h>
+#include <gtl/lru_cache.hpp>
+
 namespace Backend {
 
 uint32_t
