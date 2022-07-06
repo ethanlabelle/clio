@@ -1111,5 +1111,11 @@ ReportingETL::ReportingETL(
         {
             numDiffs_ = cache.at("num_diffs").as_int64();
         }
+        if (cache.contains("json") && cache.at("json").is_string())
+        {
+            auto entry = cache.at("json").as_string();
+            boost::algorithm::to_lower(entry);
+            backend_->cache().setJsonCaching(entry == "all");
+        }
     }
 }
