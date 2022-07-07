@@ -176,6 +176,17 @@ getString(
         return dfault;
 }
 
+std::string
+appendToJsonString(
+    std::string& json,
+    std::string const& key,
+    std::string const& nestedJson)
+{
+    // strip closing '}'
+    auto open = json.substr(0, json.length() - 1);
+    return open + "," + "\"" + key + "\": " + nestedJson + "}";
+}
+
 Status
 getHexMarker(boost::json::object const& request, ripple::uint256& marker)
 {

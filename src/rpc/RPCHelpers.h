@@ -226,6 +226,12 @@ getString(
     std::string const& field,
     std::string dfault);
 
+std::string
+appendToJsonString(
+    std::string& json,
+    std::string const& key,
+    std::string const& nestedJson);
+
 Status
 getHexMarker(boost::json::object const& request, ripple::uint256& marker);
 
