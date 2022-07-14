@@ -38,6 +38,7 @@ include(CMake/deps/rippled.cmake)
 include(CMake/deps/Boost.cmake)
 include(CMake/deps/cassandra.cmake)
 include(CMake/deps/Postgres.cmake)
+add_subdirectory(src/absl)
 
 target_sources(clio PRIVATE
   ## Main
@@ -91,6 +92,9 @@ target_sources(clio PRIVATE
   # Utility
   src/rpc/handlers/Random.cpp)
 
+set(ABSL_PROPAGATE_CXX_STD ON)
+find_package(absl::btree)
+target_link_libraries(clio PUBLIC absl::btree)
 add_executable(clio_server src/main/main.cpp)
 target_link_libraries(clio_server PUBLIC clio)
 

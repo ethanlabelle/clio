@@ -3,6 +3,7 @@
 
 #include <ripple/basics/base_uint.h>
 #include <ripple/basics/hardened_hash.h>
+#include <absl/container/btree_map.h>
 #include <backend/Types.h>
 #include <map>
 #include <mutex>
@@ -18,7 +19,7 @@ class SimpleCache
         Blob blob;
     };
 
-    std::map<ripple::uint256, CacheEntry> map_;
+    absl::btree_map<ripple::uint256, CacheEntry> map_;
     mutable std::shared_mutex mtx_;
     uint32_t latestSeq_ = 0;
     std::atomic_bool full_ = false;
