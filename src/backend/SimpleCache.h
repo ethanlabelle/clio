@@ -3,13 +3,13 @@
 
 #include <ripple/basics/base_uint.h>
 #include <ripple/basics/hardened_hash.h>
+#include <boost/json.hpp>
 #include <backend/Types.h>
 #include <map>
 #include <mutex>
 #include <shared_mutex>
 #include <utility>
 #include <vector>
-#include <boost/json.hpp>
 
 #define JSON_CACHE_SIZE 50000
 
@@ -83,7 +83,10 @@ public:
     getJson(ripple::uint256 const& key, uint32_t seq) const;
 
     void
-    insertJson(boost::json::object const& json, ripple::uint256 const& key, uint32_t seq) const;
+    insertJson(
+        boost::json::object const& json,
+        ripple::uint256 const& key,
+        uint32_t seq) const;
 };
 
 }  // namespace Backend

@@ -123,9 +123,9 @@ int
 SimpleCache::hash(ripple::uint256 const& key) const
 {
     auto total = 0;
-    for (auto word: key) 
+    for (auto word : key)
     {
-        total += word; 
+        total += word;
     }
     return total % JSON_CACHE_SIZE;
 }
@@ -135,16 +135,19 @@ SimpleCache::getJson(ripple::uint256 const& key, uint32_t seq) const
 {
     std::shared_lock lck(jsonMtx_);
     auto obj = jsonCache_[hash(key)];
-    if (obj.key == key && obj.seq == seq) 
+    if (obj.key == key && obj.seq == seq)
         return {obj.obj};
     return {};
 }
 
 void
-SimpleCache::insertJson(boost::json::object const& json, ripple::uint256 const& key, uint32_t seq) const
+SimpleCache::insertJson(
+    boost::json::object const& json,
+    ripple::uint256 const& key,
+    uint32_t seq) const
 {
     std::unique_lock lck(jsonMtx_);
     JsonCacheEntry entry = {json, key, seq};
-    jsonCache_[hash(key)] = entry; 
+    jsonCache_[hash(key)] = entry;
 }
 }  // namespace Backend

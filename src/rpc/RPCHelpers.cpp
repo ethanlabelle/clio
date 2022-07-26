@@ -498,10 +498,11 @@ toBoostJson(Json::Value const& value)
 }
 
 boost::json::object
-toJson(ripple::SLE const& sle) 
+toJson(ripple::SLE const& sle)
 {
     auto obj = boost::json::parse(
-        sle.getJson(ripple::JsonOptions::none).toStyledString()).as_object();
+                   sle.getJson(ripple::JsonOptions::none).toStyledString())
+                   .as_object();
     if (sle.getType() == ripple::ltACCOUNT_ROOT)
     {
         if (sle.isFieldPresent(ripple::sfEmailHash))
@@ -514,20 +515,21 @@ toJson(ripple::SLE const& sle)
         }
     }
 
-    return obj; 
+    return obj;
 }
 
 boost::json::object
-toJson(ripple::SLE const& sle, BackendInterface const& backend, uint32_t seq) 
+toJson(ripple::SLE const& sle, BackendInterface const& backend, uint32_t seq)
 {
     {
-    auto obj = backend.cache().getJson(sle.key(), seq);
-    if (obj)
-        return obj.value();
+        auto obj = backend.cache().getJson(sle.key(), seq);
+        if (obj)
+            return obj.value();
     }
 
     auto obj = boost::json::parse(
-        sle.getJson(ripple::JsonOptions::none).toStyledString()).as_object();
+                   sle.getJson(ripple::JsonOptions::none).toStyledString())
+                   .as_object();
     if (sle.getType() == ripple::ltACCOUNT_ROOT)
     {
         if (sle.isFieldPresent(ripple::sfEmailHash))
@@ -541,7 +543,7 @@ toJson(ripple::SLE const& sle, BackendInterface const& backend, uint32_t seq)
     }
 
     backend.cache().insertJson(obj, sle.key(), seq);
-    return obj; 
+    return obj;
 }
 
 boost::json::object
