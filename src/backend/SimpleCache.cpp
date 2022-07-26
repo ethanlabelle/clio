@@ -125,7 +125,7 @@ SimpleCache::hash(ripple::uint256 const& key) const
     auto total = 0;
     for (auto word : key)
     {
-        total += word;
+        total ^= word;
     }
     return total % JSON_CACHE_SIZE;
 }
