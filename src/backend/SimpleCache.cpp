@@ -147,7 +147,14 @@ SimpleCache::insertJson(
     uint32_t seq) const
 {
     std::unique_lock lck(jsonMtx_);
-    JsonCacheEntry entry = {json, key, seq};
-    jsonCache_[hash(key)] = entry;
+    jsonCache_[hash(key)] = {json, key, seq};
+}
+
+float
+SimpleCache::jsonHitRate() const
+{
+    if (!jsonCounter_)
+        return 1;
+    return ((float)jsonHitCounter_/jsonCounter_);
 }
 }  // namespace Backend

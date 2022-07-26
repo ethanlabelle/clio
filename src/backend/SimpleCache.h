@@ -31,6 +31,8 @@ class SimpleCache
 
     mutable std::array<JsonCacheEntry, JSON_CACHE_SIZE> jsonCache_;
     mutable std::shared_mutex jsonMtx_;
+    mutable std::atomic_uint32_t jsonCounter_;
+    mutable std::atomic_uint32_t jsonHitCounter_;
     std::map<ripple::uint256, CacheEntry> map_;
     mutable std::shared_mutex mtx_;
     uint32_t latestSeq_ = 0;
@@ -87,6 +89,9 @@ public:
         boost::json::object const& json,
         ripple::uint256 const& key,
         uint32_t seq) const;
+   
+    float
+    jsonHitRate() const;
 };
 
 }  // namespace Backend

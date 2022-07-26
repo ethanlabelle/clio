@@ -85,6 +85,7 @@ doServerInfo(Context const& context)
     cache["is_full"] = context.backend->cache().isFull();
     cache["latest_ledger_seq"] =
         context.backend->cache().latestLedgerSequence();
+    cache["json_hit_rate"] = context.backend->cache().jsonHitRate();
 
     response["etl"] = context.etl->getInfo();
 
