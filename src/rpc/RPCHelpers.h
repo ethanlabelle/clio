@@ -71,6 +71,9 @@ boost::json::object
 toJson(ripple::SLE const& sle);
 
 boost::json::object
+toJson(ripple::SLE const& sle, BackendInterface const& backend, uint32_t seq);
+
+boost::json::object
 toJson(ripple::LedgerInfo const& info);
 
 boost::json::object

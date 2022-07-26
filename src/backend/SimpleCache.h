@@ -9,6 +9,10 @@
 #include <shared_mutex>
 #include <utility>
 #include <vector>
+#include <boost/json.hpp>
+
+#define JSON_CACHE_SIZE 50000
+
 namespace Backend {
 class SimpleCache
 {
@@ -18,6 +22,15 @@ class SimpleCache
         Blob blob;
     };
 
+    struct JsonCacheEntry
+    {
+        boost::json::object obj;
+        ripple::uint256 key;
+        uint32_t seq;
+    };
+
+    mutable std::array<JsonCacheEntry, JSON_CACHE_SIZE> jsonCache_;
+    mutable std::shared_mutex jsonMtx_;
     std::map<ripple::uint256, CacheEntry> map_;
     mutable std::shared_mutex mtx_;
     uint32_t latestSeq_ = 0;
@@ -62,6 +75,15 @@ public:
 
     size_t
     size() const;
+
+    int
+    hash(ripple::uint256 const& key) const;
+
+    std::optional<boost::json::object>
+    getJson(ripple::uint256 const& key, uint32_t seq) const;
+
+    void
+    insertJson(boost::json::object const& json, ripple::uint256 const& key, uint32_t seq) const;
 };
 
 }  // namespace Backend

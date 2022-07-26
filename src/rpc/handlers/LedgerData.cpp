@@ -181,7 +181,7 @@ doLedgerData(Context const& context)
             objects.push_back(std::move(entry));
         }
         else
-            objects.push_back(toJson(sle));
+            objects.push_back(toJson(sle, *context.backend, lgrInfo.seq));
     }
     response[JS(state)] = std::move(objects);
     auto end2 = std::chrono::system_clock::now();
