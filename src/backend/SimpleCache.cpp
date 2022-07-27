@@ -135,8 +135,12 @@ SimpleCache::getJson(ripple::uint256 const& key, uint32_t seq) const
 {
     std::shared_lock lck(jsonMtx_);
     auto obj = jsonCache_[hash(key)];
+    jsonCounter_++;
     if (obj.key == key && obj.seq == seq)
+    {
+        jsonHitCounter_++;
         return {obj.obj};
+    }
     return {};
 }
 
