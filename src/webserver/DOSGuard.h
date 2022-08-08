@@ -16,8 +16,9 @@ class DOSGuard
     std::unordered_map<std::string, std::atomic_uint32_t> ipRequestCount_;
     std::unordered_set<std::string> const whitelist_;
     std::uint32_t const maxFetches_;
-    std::uint32_t const sweepInterval_;
+    std::uint32_t const fetchSweepInterval_;
     std::uint32_t const maxConcurrentRequests_;
+    std::uint32_t const reqSweepInterval_;
 
     struct RPCScope
     {
@@ -187,23 +188,25 @@ public:
         : ctx_(ctx)
         , whitelist_(getWhitelist(config))
         , maxFetches_(get(config, "max_fetches", 100))
-        , sweepInterval_(get(config, "sweep_interval", 1))
+        , fetchSweepInterval_(get(config, "fetch_sweep_interval", 1))
         , maxConcurrentRequests_(get(config, "max_concurrent_requests", 4))
+        , reqSweepInterval_(get(config, "request_sweep_interval", 10))
     {
-        createTimer();
+        createTimer(clearRequests, reqSweepInterval_);
+        createTimer(clearFetches, fetchSweepInterval_);
     }
 
     void
-    createTimer()
+    createTimer(func_t func, std::uint32_t interval)
     {
-        auto wait = std::chrono::seconds(sweepInterval_);
+        auto wait = std::chrono::seconds(interval);
         std::shared_ptr<boost::asio::steady_timer> timer =
             std::make_shared<boost::asio::steady_timer>(
                 ctx_, std::chrono::steady_clock::now() + wait);
         timer->async_wait(
-            [timer, this](const boost::system::error_code& error) {
-                clear();
-                createTimer();
+            [timer, func, interval, this](const boost::system::error_code& error) {
+                func();
+                createTimer(func, interval);
             });
     }
 
@@ -250,10 +253,33 @@ public:
     }
 
     void
-    clear()
+    clearFetches()
     {
         std::unique_lock lck(ftMtx_);
         ipFetchCount_.clear();
     }
+
+    void
+    clearRequests()
+    {
+        std::unique_lock lck(reqMtx_);
+        ipRequestCount_.clear();
+    }
 };
+
+typedef void (*func_t)();
+static void
+createTimer(func_t func, std::uint32_t interval)
+{
+    auto wait = std::chrono::seconds(interval);
+    std::shared_ptr<boost::asio::steady_timer> timer =
+        std::make_shared<boost::asio::steady_timer>(
+            ctx_, std::chrono::steady_clock::now() + wait);
+    timer->async_wait(
+        [timer, func, interval, this](const boost::system::error_code& error) {
+            func();
+            createTimer(func, interval);
+        });
+}
+
 #endif
