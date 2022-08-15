@@ -10,7 +10,7 @@
 #include <backend/BackendFactory.h>
 #include <backend/BackendInterface.h>
 
-TEST(BackendTest, Basic)
+TEST(Backend, Basic)
 {
     boost::asio::io_context ioc;
     std::optional<boost::asio::io_context::work> work;
@@ -2483,4 +2483,23 @@ TEST(Backend, cacheIntegration)
         });
 
     ioc.run();
+}
+
+TEST(Backend, txCache)
+{
+    using namespace Backend;
+    TxCache cache;
+
+    // should all be none, cache is empty
+    ASSERT_FALSE(cache.get(ripple::uint256{12}));
+    ASSERT_FALSE(cache.get(firstKey));
+    ASSERT_FALSE(cache.get(lastKey));
+    ASSERT_FALSE(cache.size());
+
+    cache.setSize(10);
+    ASSERT_EQ(cache.size(), 10);
+    // all should still be false as cache is empty
+    ASSERT_FALSE(cache.get(ripple::uint256{12}));
+    ASSERT_FALSE(cache.get(firstKey));
+    ASSERT_FALSE(cache.get(lastKey));
 }
