@@ -15,18 +15,17 @@
 namespace Backend {
 class TxCache
 {
-    // basically a ring buffer
-    // array of maps of transaction hashes -> TransactionAndMetadata objects
-    // replace the oldest ledger in cache when inserting a new ledger
-    std::array<
-        std::map<ripple::uint256, TransactionAndMetadata>,
-        NUM_LEDGERS_CACHED>
-        cache_;
     mutable std::shared_mutex mtx_;
     uint32_t latestSeq_ = 0;
+    bool enabled_;
+    size_t numLedgersCached_;
     std::atomic_int tail_;
     mutable std::atomic_int txReqCounter_;
     mutable std::atomic_int txHitCounter_;
+    // ring buffer
+    // vector of maps of transaction hashes -> TransactionAndMetadata objects
+    // replaces the oldest ledger in cache when inserting a new ledger
+    std::vector<std::map<ripple::uint256, TransactionAndMetadata>> cache_;
 
 public:
     // Update the cache with new ledger objects
@@ -43,13 +42,19 @@ public:
     getLedgerTransactions(std::uint32_t const ledgerSequence) const;
 
     std::optional<std::vector<ripple::uint256>>
-    getLedgerTransactionHashes(std::uint32_t const ledgerSequence) const;
+    getLedgerTransactionHashes(uint32_t const ledgerSequence) const;
 
     uint32_t
     latestLedgerSequence() const;
 
     float
     getHitRate() const;
+
+    size_t
+    size() const;
+
+    void
+    setSize(std::uint32_t size);
 };
 
 }  // namespace Backend

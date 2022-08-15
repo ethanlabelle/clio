@@ -62,9 +62,7 @@ ReportingETL::insertTransactions(
             txMeta, sttx.getTransactionID(), journal);
         std::string keyStr{(const char*)sttx.getTransactionID().data(), 32};
 
-        ripple::uint256 hash{keyStr};
-        hashes.push_back(hash);
-
+        hashes.push_back(ripple::uint256{keyStr});
         transactions.push_back(
             {{raw->begin(), raw->end()},
              {txn.mutable_metadata_blob()->begin(),
@@ -176,6 +174,25 @@ ReportingETL::publishLedger(ripple::LedgerInfo const& lgrInfo)
 
     std::vector<ripple::uint256> hashes;
     std::vector<Backend::TransactionAndMetadata> transactions;
+    if (!writing_)
+    {
+        BOOST_LOG_TRIVIAL(debug) << __func__ << " - Updating cache";
+
+        std::vector<Backend::LedgerObject> diff =
+            Backend::synchronousAndRetryOnTimeout([&](auto yield) {
+                return backend_->fetchLedgerDiff(lgrInfo.seq, yield);
+            });
+        hashes = Backend::synchronousAndRetryOnTimeout([&](auto yield) {
+            return backend_->doFetchAllTransactionHashesInLedger(
+                lgrInfo.seq, yield);
+        });
+        transactions = Backend::synchronousAndRetryOnTimeout([&](auto yield) {
+            return backend_->doFetchTransactions(hashes, yield);
+        });
+        backend_->cache().update(diff, lgrInfo.seq);
+        backend_->txCache().update(hashes, transactions, lgrInfo.seq);
+        backend_->updateRange(lgrInfo.seq);
+    }
     setLastClose(lgrInfo.closeTime);
     auto age = lastCloseAgeSeconds();
     // if the ledger closed over 10 minutes ago, assume we are still
@@ -186,16 +203,18 @@ ReportingETL::publishLedger(ripple::LedgerInfo const& lgrInfo)
             Backend::synchronousAndRetryOnTimeout([&](auto yield) {
                 return backend_->fetchFees(lgrInfo.seq, yield);
             });
+        if (writing_)
+        {
+            hashes = Backend::synchronousAndRetryOnTimeout([&](auto yield) {
+                return backend_->doFetchAllTransactionHashesInLedger(
+                    lgrInfo.seq, yield);
+            });
 
-        hashes = Backend::synchronousAndRetryOnTimeout([&](auto yield) {
-            return backend_->doFetchAllTransactionHashesInLedger(
-                lgrInfo.seq, yield);
-        });
-
-        transactions = Backend::synchronousAndRetryOnTimeout([&](auto yield) {
-            return backend_->doFetchTransactions(hashes, yield);
-        });
-
+            transactions =
+                Backend::synchronousAndRetryOnTimeout([&](auto yield) {
+                    return backend_->doFetchTransactions(hashes, yield);
+                });
+        }
         auto ledgerRange = backend_->fetchLedgerRange();
         assert(ledgerRange);
         assert(fees);
@@ -213,20 +232,6 @@ ReportingETL::publishLedger(ripple::LedgerInfo const& lgrInfo)
     else
         BOOST_LOG_TRIVIAL(info) << __func__ << " - Skipping publishing ledger "
                                 << std::to_string(lgrInfo.seq);
-    if (!writing_)
-    {
-        BOOST_LOG_TRIVIAL(debug) << __func__ << " - Updating cache";
-
-        std::vector<Backend::LedgerObject> diff =
-            Backend::synchronousAndRetryOnTimeout([&](auto yield) {
-                return backend_->fetchLedgerDiff(lgrInfo.seq, yield);
-            });
-
-        backend_->cache().update(diff, lgrInfo.seq);
-        backend_->txCache().update(hashes, transactions, lgrInfo.seq);
-        backend_->updateRange(lgrInfo.seq);
-    }
-
     setLastPublish();
 }
 

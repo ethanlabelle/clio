@@ -21,11 +21,11 @@ TxCache::update(
 
     assert(seq == latestSeq_ + 1 || latestSeq_ == 0);
     latestSeq_ = seq;
-    for (std::size_t i = 0; i < hashes.size(); i++)
+    for (size_t i = 0; i < hashes.size(); i++)
     {
         cache_[tail_][hashes[i]] = transactions[i];
     }
-    tail_ = (tail_ + 1) % NUM_LEDGERS_CACHED;
+    tail_ = (tail_ + 1) % cache_.size();
 }
 
 std::optional<TransactionAndMetadata>
@@ -55,15 +55,15 @@ TxCache::getHitRate() const
 }
 
 std::optional<std::vector<TransactionAndMetadata>>
-TxCache::getLedgerTransactions(std::uint32_t const ledgerSequence) const
+TxCache::getLedgerTransactions(uint32_t const ledgerSequence) const
 {
     std::shared_lock lck{mtx_};
     txReqCounter_++;
     auto diff = latestSeq_ - ledgerSequence;
-    if (diff < NUM_LEDGERS_CACHED)
+    if (diff < cache_.size())
     {
-        auto head = (tail_ - 1) % NUM_LEDGERS_CACHED;
-        auto ledgerCache = cache_[(head - diff) % NUM_LEDGERS_CACHED];
+        auto head = (tail_ - 1) % cache_.size();
+        auto ledgerCache = cache_[(head - diff) % cache_.size()];
         std::vector<TransactionAndMetadata> result;
         for (auto const& tx : ledgerCache)
         {
@@ -79,15 +79,15 @@ TxCache::getLedgerTransactions(std::uint32_t const ledgerSequence) const
 }
 
 std::optional<std::vector<ripple::uint256>>
-TxCache::getLedgerTransactionHashes(std::uint32_t const ledgerSequence) const
+TxCache::getLedgerTransactionHashes(uint32_t const ledgerSequence) const
 {
     std::shared_lock lck{mtx_};
     txReqCounter_++;
     auto diff = latestSeq_ - ledgerSequence;
     if (diff < NUM_LEDGERS_CACHED)
     {
-        auto head = (tail_ - 1) % NUM_LEDGERS_CACHED;
-        auto ledgerCache = cache_[(head - diff) % NUM_LEDGERS_CACHED];
+        auto head = (tail_ - 1) % cache_.size();
+        auto ledgerCache = cache_[(head - diff) % cache_.size()];
         std::vector<ripple::uint256> result;
         for (auto const& tx : ledgerCache)
         {
@@ -100,6 +100,18 @@ TxCache::getLedgerTransactionHashes(std::uint32_t const ledgerSequence) const
         }
     }
     return {};
+}
+
+size_t
+TxCache::size() const
+{
+    return cache_.size();
+}
+
+void
+TxCache::setSize(uint32_t size)
+{
+    cache_.resize(size);
 }
 
 }  // namespace Backend
