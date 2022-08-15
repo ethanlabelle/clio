@@ -65,23 +65,19 @@ ReportingETL::insertTransactions(
         ripple::uint256 hash{keyStr};
         hashes.push_back(hash);
 
+        transactions.push_back(
+            {{raw->begin(), raw->end()},
+             {txn.mutable_metadata_blob()->begin(),
+              txn.mutable_transaction_blob()->end()},
+             ledger.seq,
+             ledger.closeTime.time_since_epoch().count()});
+
         backend_->writeTransaction(
             std::move(keyStr),
             ledger.seq,
             ledger.closeTime.time_since_epoch().count(),
             std::move(*raw),
             std::move(*txn.mutable_metadata_blob()));
-
-        Backend::Blob txBlob;
-        std::copy(raw->begin(), raw->end(), std::back_inserter(txBlob));
-        Backend::Blob mdBlob;
-        auto mdStr = txn.mutable_metadata_blob();
-        std::copy(mdStr->begin(), mdStr->end(), std::back_inserter(mdBlob));
-        transactions.push_back(
-            {txBlob,
-             mdBlob,
-             ledger.seq,
-             ledger.closeTime.time_since_epoch().count()});
     }
     backend_->txCache().update(hashes, transactions, ledger.seq);
 
