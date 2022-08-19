@@ -17,6 +17,8 @@ TxCache::update(
     uint32_t seq)
 {
     std::unique_lock lck{mtx_};
+    if (!cache_.size())
+        return;
     cache_[tail_].clear();
 
     assert(seq == latestSeq_ + 1 || latestSeq_ == 0);
@@ -105,12 +107,16 @@ TxCache::getLedgerTransactionHashes(uint32_t const ledgerSequence) const
 size_t
 TxCache::size() const
 {
+    std::shared_lock lck{mtx_};
     return cache_.size();
 }
 
+// safe to call multiple times but should not be called multiple times
 void
 TxCache::setSize(uint32_t size)
 {
+    std::unique_lock lck{mtx_};
+    tail_ = 0;
     cache_.resize(size);
 }
 
